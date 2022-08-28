@@ -1,3 +1,33 @@
+## 6.0.0 / 2022-08-XX
+
+* Breaking Changes
+  * Ruby 2.4+ supported (dropping 2.2 and 2.3)
+  * Remote_addr functionality has changed ([#2652], [#2653])
+    * When using the set_remote_address header: "header_name" functionality, if the header is not passed, REMOTE_ADDR is now set to the physical peeraddr instead of always being set to 127.0.0.1
+    * When an error occurs preventing the physical peeraddr from being fetched, REMOTE_ADDR is now set to the unspecified source address ('0.0.0.0') instead of to '127.0.0.1'
+  * No longer supporting Java 1.7 or below (JRuby 9.1 was the last release to
+    support this) ([#2849])
+
+* Features
+  * We now log entire backtrace when worker start fails ([#2891])
+  * [jruby] enable TLSv1.3 support ([#2886])
+  * Export puma/ruby versions in /stats ([#2875])
+  * Allow configuring request uri max length & request path max length ([#2840])
+  * [jruby] support a truststore option ([#2849], [#2904], [#2884])
+  * Add a couple of accessors ([#2774]) 
+  * Add support for streaming bodies. ([#2740])
+  * [jruby] support setting TLS protocols + rename ssl_cipher_list ([#2899])
+
+* Bugfixes
+  * Load the configuration before passing it to the binder ([#2897])
+
+* Refactor
+  * log_writer.rb - add internal_write method ([#2888])
+  * [WIP] Refactor: Split out LogWriter from Events (no logic change) ([#2798])
+  * Extract prune_bundler code into it's own class. ([#2797])
+  * Refactor Launcher#run to increase readability (no logic change) ([#2795])
+  * Ruby 3.2 will have native IO#wait_* methods, don't require io/wait ([#2903])
+
 ## 5.6.5 / 2022-08-23
 
 * Feature
@@ -1873,15 +1903,29 @@ be added back in a future date when a java Puma::MiniSSL is added.
 * Bugfixes
   * Your bugfix goes here <Most recent on the top, like GitHub> (#Github Number)
 
-[#2883]:https://github.com/puma/puma/pull/2883     "PR by @MSP-Greg, merged 2022-06-02"
+[#2891]:https://github.com/puma/puma/pull/2891     "PR by @gingerlime, merged 2022-06-02"
+[#2886]:https://github.com/puma/puma/pull/2886     "PR by @kares, merged 2022-05-30"
+[#2884]:https://github.com/puma/puma/pull/2884     "PR by @kares, merged 2022-05-30"
+[#2875]:https://github.com/puma/puma/pull/2875     "PR by @ylecuyer, merged 2022-05-19"
+[#2840]:https://github.com/puma/puma/pull/2840     "PR by @LukaszMaslej, merged 2022-04-13"
+[#2849]:https://github.com/puma/puma/pull/2849     "PR by @kares, merged 2022-04-09"
+[#2774]:https://github.com/puma/puma/pull/2774     "PR by @ob-stripe, merged 2022-01-31"
+[#2740]:https://github.com/puma/puma/pull/2740     "PR by @ioquatix, merged 2022-01-29"
+[#2899]:https://github.com/puma/puma/pull/2899     "PR by @kares, merged 2022-07-04"
+[#2816]:https://github.com/puma/puma/issues/2816   "Issue by @khustochka, closed 2022-02-20"
+[#2817]:https://github.com/puma/puma/pull/2817     "PR by @khustochka, merged 2022-02-20"
+[#2810]:https://github.com/puma/puma/pull/2810     "PR by @kzkn, merged 2022-01-27"
+[#2888]:https://github.com/puma/puma/pull/2888     "PR by @MSP-Greg, merged 2022-06-01"
+[#2798]:https://github.com/puma/puma/pull/2798     "PR by @johnnyshields, merged 2022-02-05"
+[#2797]:https://github.com/puma/puma/pull/2797     "PR by @johnnyshields, merged 2022-02-01"
+[#2795]:https://github.com/puma/puma/pull/2795     "PR by @johnnyshields, merged 2022-01-31"
 [#2868]:https://github.com/puma/puma/pull/2868     "PR by @MSP-Greg, merged 2022-06-02"
 [#2866]:https://github.com/puma/puma/issues/2866   "Issue by @slondr, closed 2022-06-02"
-[#2888]:https://github.com/puma/puma/pull/2888     "PR by @MSP-Greg, merged 2022-06-01"
+[#2883]:https://github.com/puma/puma/pull/2883     "PR by @MSP-Greg, merged 2022-06-02"
 [#2890]:https://github.com/puma/puma/pull/2890     "PR by @kares, merged 2022-06-01"
 [#2729]:https://github.com/puma/puma/issues/2729   "Issue by @kares, closed 2022-06-01"
 [#2885]:https://github.com/puma/puma/pull/2885     "PR by @MSP-Greg, merged 2022-05-30"
 [#2839]:https://github.com/puma/puma/issues/2839   "Issue by @wlipa, closed 2022-05-30"
-[#2882]:https://github.com/puma/puma/pull/2882     "PR by @MSP-Greg, merged 2022-05-19"
 [#2864]:https://github.com/puma/puma/pull/2864     "PR by @MSP-Greg, merged 2022-04-26"
 [#2863]:https://github.com/puma/puma/issues/2863   "Issue by @eradman, closed 2022-04-26"
 [#2861]:https://github.com/puma/puma/pull/2861     "PR by @BlakeWilliams, merged 2022-04-17"
@@ -1890,15 +1934,6 @@ be added back in a future date when a java Puma::MiniSSL is added.
 [#2848]:https://github.com/puma/puma/pull/2848     "PR by @stanhu, merged 2022-04-02"
 [#2847]:https://github.com/puma/puma/pull/2847     "PR by @stanhu, merged 2022-04-02"
 [#2838]:https://github.com/puma/puma/pull/2838     "PR by @epsilon-0, merged 2022-03-03"
-[#2817]:https://github.com/puma/puma/pull/2817     "PR by @khustochka, merged 2022-02-20"
-[#2810]:https://github.com/puma/puma/pull/2810     "PR by @kzkn, merged 2022-01-27"
-[#2899]:https://github.com/puma/puma/pull/2899     "PR by @kares, merged 2022-07-04"
-[#2891]:https://github.com/puma/puma/pull/2891     "PR by @gingerlime, merged 2022-06-02"
-[#2886]:https://github.com/puma/puma/pull/2886     "PR by @kares, merged 2022-05-30"
-[#2884]:https://github.com/puma/puma/pull/2884     "PR by @kares, merged 2022-05-30"
-[#2875]:https://github.com/puma/puma/pull/2875     "PR by @ylecuyer, merged 2022-05-19"
-[#2840]:https://github.com/puma/puma/pull/2840     "PR by @LukaszMaslej, merged 2022-04-13"
-[#2849]:https://github.com/puma/puma/pull/2849     "PR by @kares, merged 2022-04-09"
 [#2809]:https://github.com/puma/puma/pull/2809     "PR by @dentarg, merged 2022-01-26"
 [#2764]:https://github.com/puma/puma/pull/2764     "PR by @dentarg, merged 2022-01-18"
 [#2708]:https://github.com/puma/puma/issues/2708   "Issue by @erikaxel, closed 2022-01-18"
