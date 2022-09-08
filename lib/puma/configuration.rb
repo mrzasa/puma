@@ -5,17 +5,6 @@ require 'puma/plugin'
 require 'puma/const'
 
 module Puma
-
-  module ConfigDefault
-    DefaultRackup = "config.ru"
-
-    DefaultTCPHost = "0.0.0.0"
-    DefaultTCPPort = 9292
-    DefaultWorkerCheckInterval = 5
-    DefaultWorkerTimeout = 60
-    DefaultWorkerShutdownTimeout = 30
-  end
-
   # A class used for storing "leveled" configuration options.
   #
   # In this class any "user" specified options take precedence over any
@@ -136,7 +125,48 @@ module Puma
   # is done because an environment variable may have been modified while loading
   # configuration files.
   class Configuration
-    include ConfigDefault
+    DEFAULTS = {
+      rackup: 'config.ru'.freeze,
+      tcp_host: '0.0.0.0'.freeze,
+      tcp_port: 9292,
+      worker_check_interval: 5,
+      worker_boot_timeout: 60,
+      worker_timeout: 60,
+      worker_shutdown_timeout: 30,
+      log_requests: false,
+      debug: false,
+      binds: ['tcp://0.0.0.0:9292'.freeze],
+      silence_single_worker_warning: false,
+      mode: :http,
+      logger: STDOUT,
+      raise_exception_on_sigterm: true,
+      mutate_stdout_and_stderr_to_sync_on_write: true,
+      worker_culling_strategy: :youngest,
+      remote_address: :socket,
+      tag: File.basename(Dir.getwd),
+      min_threads: 0,
+      max_threads: Puma.mri? ? 5 : 16,
+      workers: 0,
+      environment: 'development'.freeze,
+      early_hints: nil,
+      queue_requests: true,
+      io_selector_backend: :auto,
+
+      # The default number of seconds for another request within a persistent
+      # session.
+      persistent_timeout: 20,
+
+      # The default number of seconds to wait until we get the first data
+      # for the request
+      first_data_timeout: 30,
+
+      # How many requests to attempt inline before sending a client back to
+      # the reactor to be subject to normal ordering. The idea here is that
+      # we amortize the cost of going back to the reactor for a well behaved
+      # but very "greedy" client across 10 requests. This prevents a not
+      # well behaved client from monopolizing the thread forever.
+      max_fast_inline: 10,
+    }
 
     def initialize(user_options={}, default_options = {}, &block)
       default_options = self.puma_default_options.merge(default_options)
@@ -181,37 +211,22 @@ module Puma
       self
     end
 
-    # @version 5.0.0
-    def default_max_threads
-      Puma.mri? ? 5 : 16
+    def puma_default_options
+      defaults = DEFAULTS.dup
+      puma_options_from_env.each { |k,v| defaults[k] = v if v }
+      defaults
     end
 
-    def puma_default_options
+    def puma_options_from_env
+      min = ENV['PUMA_MIN_THREADS'] || ENV['MIN_THREADS']
+      max = ENV['PUMA_MAX_THREADS'] || ENV['MAX_THREADS']
+      workers = ENV['WEB_CONCURRENCY']
+
       {
-        :min_threads => Integer(ENV['PUMA_MIN_THREADS'] || ENV['MIN_THREADS'] || 0),
-        :max_threads => Integer(ENV['PUMA_MAX_THREADS'] || ENV['MAX_THREADS'] || default_max_threads),
-        :log_requests => false,
-        :debug => false,
-        :binds => ["tcp://#{DefaultTCPHost}:#{DefaultTCPPort}"],
-        :workers => Integer(ENV['WEB_CONCURRENCY'] || 0),
-        :silence_single_worker_warning => false,
-        :mode => :http,
-        :worker_check_interval => DefaultWorkerCheckInterval,
-        :worker_timeout => DefaultWorkerTimeout,
-        :worker_boot_timeout => DefaultWorkerTimeout,
-        :worker_shutdown_timeout => DefaultWorkerShutdownTimeout,
-        :worker_culling_strategy => :youngest,
-        :remote_address => :socket,
-        :tag => method(:infer_tag),
-        :environment => -> { ENV['APP_ENV'] || ENV['RACK_ENV'] || ENV['RAILS_ENV'] || 'development' },
-        :rackup => DefaultRackup,
-        :logger => STDOUT,
-        :persistent_timeout => Const::PERSISTENT_TIMEOUT,
-        :first_data_timeout => Const::FIRST_DATA_TIMEOUT,
-        :raise_exception_on_sigterm => true,
-        :max_fast_inline => Const::MAX_FAST_INLINE,
-        :io_selector_backend => :auto,
-        :mutate_stdout_and_stderr_to_sync_on_write => true,
+        min_threads: min && Integer(min),
+        max_threads: max && Integer(max),
+        workers: workers && Integer(workers),
+        environment: ENV['APP_ENV'] || ENV['RACK_ENV'] || ENV['RAILS_ENV'],
       }
     end
 
@@ -227,7 +242,7 @@ module Puma
       return [] if files == ['-']
       return files if files.any?
 
-      first_default_file = %W(config/puma/#{environment_str}.rb config/puma.rb).find do |f|
+      first_default_file = %W(config/puma/#{@options[:environment]}.rb config/puma.rb).find do |f|
         File.exist?(f)
       end
 
@@ -283,10 +298,6 @@ module Puma
       @options[:environment]
     end
 
-    def environment_str
-      environment.respond_to?(:call) ? environment.call : environment
-    end
-
     def load_plugin(name)
       @plugins.create name
     end
@@ -314,10 +325,6 @@ module Puma
     end
 
     private
-
-    def infer_tag
-      File.basename(Dir.getwd)
-    end
 
     # Load and use the normal Rack builder if we can, otherwise
     # fallback to our minimal version.
